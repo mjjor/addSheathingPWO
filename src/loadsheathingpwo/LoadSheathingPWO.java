@@ -234,7 +234,13 @@ public class LoadSheathingPWO {
                wallPanelNetAreaSqft   = rsGetSheathPanel.getDouble(10);
                wallPanelWeight        = rsGetSheathPanel.getDouble(11);
                sheathItem             = rsGetSheathPanel.getString(12);
-           
+               String getItemKey = ("SELECT ikey FROM itemmaster WHERE item = '" + sheathItem + "'");
+                  ResultSet rsGetItemKey = connAdj.createStatement().executeQuery(getItemKey);
+                  if (rsGetItemKey.next()){
+                        sheathIkey = rsGetItemKey.getInt(1);
+                  }rsGetItemKey.close();
+                      
+               
            
            }rsGetSheathPanel.close();
        
