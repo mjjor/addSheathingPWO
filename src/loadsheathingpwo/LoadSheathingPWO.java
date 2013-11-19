@@ -43,10 +43,15 @@ public class LoadSheathingPWO {
         String saddress5          = "";
         String fob                = "";
         String taxtable           = "";
+        String taxable            = "";
         String freight            = "";
         String terms              = "";
         String wallMark           = "";
         String sheathItem         = "";
+        String idescrip           = "";
+        String sunit              = "";
+        String punit              = "";
+        String spriceunit         = "";
         int LOCTID                = 194; //189 MBSL LIVE loctid //190 MMPL LIVE loctid //194 DEVMBSL TEST loctid //195 MMSL LIVE loctid;
         int PLANTIDH              = 194; //189 MBSL LIVE plantid //190 MMPL LIVE plantid //194 DEVMBSL TEST plantid //195 MMSL LIVE plantid;
         int OWNERID               = 50753; //50753 DEVMBSL //
@@ -61,6 +66,8 @@ public class LoadSheathingPWO {
         int soKeynoh              = 0;
         int wallPanelId           = 0;
         int sheathIkey            = 0;
+        int decMultiplier         = 1000; //3 decimals
+        int line                  = 0; 
         double taxrate            = 0.00;
         double wallPanelLengthMm      =  0.00;
         double wallPanelHeightMm      =  0.00;
@@ -71,7 +78,20 @@ public class LoadSheathingPWO {
         double wallPanelGrossAreaSqft = 0.00;
         double wallPanelNetAreaSqft   = 0.00;
         double wallPanelWeight        = 0.00;
-        
+        double sheathAvgCost          = 0.00;
+        double cost                   = 0.00;
+        double price                  = 0.00;
+        double sellfact               = 0.00;
+        double iweight                = 0.00;
+        double spricefact             = 0.00;
+        double priceFact              = 0.00;
+        double scost                  = 0.00;
+        double sprice                 = 0.00;
+        double extstot                = 0.00;
+        double quantity               = 0.00;
+        double exttax                 = 0.00;  
+        double exttot                 = 0.00;
+                  
         if ("true".equals(testing)) 
             CID = "DEVMBSL";
         else CID = "MBSL";
@@ -201,6 +221,17 @@ public class LoadSheathingPWO {
        setOrderNo.setInt(1, nextOrder);
        setOrderNo.executeUpdate(); 
        
+       String getWallPanel = (" SELECT IM.ikey from itemmaster AS IM" + 
+                              " INNER JOIN pcxref AS IA ON IM.ikey = IA.parentid " +
+                              " WHERE IM.cid      = '" + CID + "'" +
+                              "       IA.type     = 'PA' AND " +
+                              "       IA.cidkeyno = IM.cid");
+       
+       ResultSet rsGetWallPanel = connAdj.createStatement().executeQuery(getWallPanel);
+           if (rsGetWallPanel.next()){
+               wallPanelId = rsGetWallPanel.getInt(1);
+           }rsGetWallPanel.close();  
+       
        // get the panels we need to create order lines for
        String getSheathPanel = " SELECT WPI.WallPanel_ID, " + 
                                 "        WPI.Description, " + 
@@ -234,13 +265,135 @@ public class LoadSheathingPWO {
                wallPanelNetAreaSqft   = rsGetSheathPanel.getDouble(10);
                wallPanelWeight        = rsGetSheathPanel.getDouble(11);
                sheathItem             = rsGetSheathPanel.getString(12);
-               String getItemKey = ("SELECT ikey FROM itemmaster WHERE item = '" + sheathItem + "'");
+               String getItemKey = ("SELECT ikey, descrip, cost, price, sellfact," +
+                                    " taxable, unit_sell, unit_pur, unitw," +
+                                    " spriceunit, spricefact " +
+                                   " FROM itemmaster WHERE cid = '" + CID +
+                                   "' AND  item = '"+ sheathItem + "'");
                   ResultSet rsGetItemKey = connAdj.createStatement().executeQuery(getItemKey);
                   if (rsGetItemKey.next()){
-                        sheathIkey = rsGetItemKey.getInt(1);
+                       sheathIkey = rsGetItemKey.getInt(1);
+                       sheathAvgCost = rsGetItemKey.getDouble(2);                         
+                       idescrip = rsGetItemKey.getString(2).trim();
+                       cost     = rsGetItemKey.getDouble(3);
+                       price    = rsGetItemKey.getDouble(4);
+                       sellfact = rsGetItemKey.getDouble(5);
+                       taxable  = rsGetItemKey.getString(6);
+                       sunit    = rsGetItemKey.getString(7);
+                       punit    = rsGetItemKey.getString(8);
+                       iweight  = rsGetItemKey.getDouble(9);
+                       spriceunit = rsGetItemKey.getString(10);
+                       spricefact = rsGetItemKey.getDouble(11);
+                  if ("MSFT".equals(punit) || "MF".equals(punit))
+                      priceFact = 0.001;  
+                      scost    = (double)Math.round((priceFact * cost) * 100) / 100;
+                      sprice   = (double)Math.round((priceFact * price) * 100) / 100;  
+                      extstot  = ((double)Math.round((sprice * quantity) * 100 ) / 
+                                  100);
+                      exttax   = (double)Math.round(((sprice * quantity) * 
+                           (taxrate /100)) * 100 ) / 100;
+                      exttot   = (((double)Math.round((sprice * quantity) * 100 ) 
+                              / 100) + ((double)Math.round((sprice * quantity) *
+                             (taxrate / 100 ) * 100) / 100)); 
                   }rsGetItemKey.close();
                       
-               
+              String addsoLine = ("INSERT INTO sotran (sono, custid, linenum," + 
+                                " item, qtyord, cost, price, " + 
+                                " expdate, shipdate, ikey, descrip, loctid," + 
+                                " estdate, keynoh, " + 
+                                " reqdate, taxable, unit, unitfact, heldfor," + 
+                                " adduser, adddate, " + 
+                                " edituser, editdate, pgroup, qty2bill," + 
+                                " actqty, shiptoid, phaseid, " + 
+                                " projid, ownerid, extstot, exttot, exttax," +
+                                " socdesc, taxrated, sprice, " + 
+                                " spriceunit, taxtable, olistprice, qtyopen," +
+                                " plantid, getprice, unitw2, " + 
+                                " spricefact, bextcost, bexttax, bexttot," + 
+                                " bextstot, bprice, bsprice, " + 
+                                " bunitprice, bstdcost2, bgetprice, " + 
+                                " BLISTPRICE, AMSPARTNO, needprod, resetprod) " + 
+                                " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?," + 
+                                       " ?,?,?,?,?,?,?,?,?,?,?,?,?,?," + 
+                                       " ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?," + 
+                                       " ?,?,?,?,?,?,?,?,?)");
+              PreparedStatement addLine = connAdj.prepareStatement(addsoLine);
+            
+            addLine.setString(1, salesOrder);
+            addLine.setInt(2, soldto);
+            addLine.setInt(3,line);
+            addLine.setString(4, MemberName);
+            addLine.setInt(5, quantity);
+            addLine.setDouble(6, cost);
+            addLine.setDouble(7, (double)Math.round(sprice * decMultiplier) / 
+                                  decMultiplier );
+            addLine.setString(8, "n");
+            addLine.setString(9, dateNext);
+            addLine.setInt(10, ikey);
+            addLine.setString(11, idescrip);
+            addLine.setInt(12, loctid);
+            addLine.setString(13, dateNext);
+            addLine.setInt(14, soKeynoh);
+            addLine.setString(15, dateNext);
+            addLine.setString(16, taxable);
+            addLine.setString(17, sunit);
+            addLine.setDouble(18, sellfact);
+            addLine.setString(19, heldfor);
+            addLine.setString(20, "MADMAX");
+            addLine.setString(21, dateNow);
+            addLine.setString(22, " ");
+            addLine.setString(23, null);
+            addLine.setString(24, "M");
+            addLine.setInt(25, quantity);
+            addLine.setInt(26, quantity);
+            addLine.setInt(27,shipto);
+            addLine.setInt(28, msnphase);
+            addLine.setInt(29, msnid);
+            addLine.setInt(30, ownerid);
+            addLine.setDouble(31, (double)Math.round(extstot * decMultiplier) / 
+                                   decMultiplier );
+            addLine.setDouble(32, (double)Math.round(exttot * decMultiplier) / 
+                                   decMultiplier );
+            addLine.setDouble(33, (double)Math.round(exttax * decMultiplier) / 
+                                   decMultiplier );
+            addLine.setString(34, socdesc);
+            addLine.setDouble(35, taxrate);
+            addLine.setDouble(36, (double)Math.round(price * decMultiplier) / 
+                                   decMultiplier );
+            addLine.setString(37, spriceunit);
+            addLine.setString(38, taxtable);
+            addLine.setDouble(39, (double)Math.round(price * decMultiplier) / 
+                                   decMultiplier );
+            addLine.setInt(40, quantity);
+            addLine.setInt(41, loctid);
+            addLine.setDouble(42, (double)Math.round(price  * decMultiplier) / 
+                                   decMultiplier );
+            addLine.setDouble(43, iweight);
+            addLine.setDouble(44, spricefact);
+            addLine.setDouble(45, (double)Math.round(extcost * decMultiplier) / 
+                                   decMultiplier );
+            addLine.setDouble(46, (double)Math.round(exttax * decMultiplier) / 
+                                   decMultiplier );
+            addLine.setDouble(47, (double)Math.round(exttot * decMultiplier) / 
+                                   decMultiplier );
+            addLine.setDouble(48, (double)Math.round(extstot * decMultiplier) / 
+                                   decMultiplier );
+            addLine.setDouble(49, (double)Math.round(sprice * decMultiplier) / 
+                                   decMultiplier );
+            addLine.setDouble(50, (double)Math.round(price * decMultiplier) / 
+                                   decMultiplier );
+            addLine.setDouble(51, (double)Math.round(sprice * decMultiplier) / 
+                                   decMultiplier );
+            addLine.setDouble(52, (double)Math.round(extcost * decMultiplier) / 
+                                   decMultiplier );
+            addLine.setDouble(53, (double)Math.round(price * decMultiplier) / 
+                                   decMultiplier );
+            addLine.setDouble(54, (double)Math.round(price * decMultiplier) / 
+                                   decMultiplier );
+            addLine.setString(55,"");
+            addLine.setString(56,"y");
+            addLine.setString(57,"y");
+            addLine.executeUpdate();
            
            }rsGetSheathPanel.close();
        
