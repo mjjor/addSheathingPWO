@@ -52,6 +52,9 @@ public class LoadSheathingPWO {
         String sunit              = "";
         String punit              = "";
         String spriceunit         = "";
+        String wallPanelDesc      = "";
+        String wallPanelItem      = "";
+        String socDesc            = "";
         int LOCTID                = 194; //189 MBSL LIVE loctid //190 MMPL LIVE loctid //194 DEVMBSL TEST loctid //195 MMSL LIVE loctid;
         int PLANTIDH              = 194; //189 MBSL LIVE plantid //190 MMPL LIVE plantid //194 DEVMBSL TEST plantid //195 MMSL LIVE plantid;
         int OWNERID               = 50753; //50753 DEVMBSL //
@@ -67,7 +70,8 @@ public class LoadSheathingPWO {
         int wallPanelId           = 0;
         int sheathIkey            = 0;
         int decMultiplier         = 1000; //3 decimals
-        int line                  = 0; 
+        int line                  = 0;
+        int quantity              = 1;
         double taxrate            = 0.00;
         double wallPanelLengthMm      =  0.00;
         double wallPanelHeightMm      =  0.00;
@@ -88,9 +92,9 @@ public class LoadSheathingPWO {
         double scost                  = 0.00;
         double sprice                 = 0.00;
         double extstot                = 0.00;
-        double quantity               = 0.00;
         double exttax                 = 0.00;  
         double exttot                 = 0.00;
+        double extcost                = 0.00;    
                   
         if ("true".equals(testing)) 
             CID = "DEVMBSL";
@@ -221,7 +225,7 @@ public class LoadSheathingPWO {
        setOrderNo.setInt(1, nextOrder);
        setOrderNo.executeUpdate(); 
        
-       String getWallPanel = (" SELECT IM.ikey from itemmaster AS IM" + 
+       String getWallPanel = (" SELECT IM.ikey, IM.descrip, IM.item from itemmaster AS IM" + 
                               " INNER JOIN pcxref AS IA ON IM.ikey = IA.parentid " +
                               " WHERE IM.cid      = '" + CID + "'" +
                               "       IA.type     = 'PA' AND " +
@@ -229,11 +233,13 @@ public class LoadSheathingPWO {
        
        ResultSet rsGetWallPanel = connAdj.createStatement().executeQuery(getWallPanel);
            if (rsGetWallPanel.next()){
-               wallPanelId = rsGetWallPanel.getInt(1);
+               wallPanelId   = rsGetWallPanel.getInt(1);
+               wallPanelDesc = rsGetWallPanel.getString(2);
+               wallPanelItem = rsGetWallPanel.getString(3);
            }rsGetWallPanel.close();  
        
        // get the panels we need to create order lines for
-       String getSheathPanel = " SELECT WPI.WallPanel_ID, " + 
+       String getSheathPanel =  " SELECT WPI.WallPanel_ID, " + 
                                 "        WPI.Description, " + 
                                 "        WPI.PanelLength, " +
                                 "        CONVERT_MM_DEC4_FEET(WPI.PanelLength)," +
@@ -320,43 +326,43 @@ public class LoadSheathingPWO {
               PreparedStatement addLine = connAdj.prepareStatement(addsoLine);
             
             addLine.setString(1, salesOrder);
-            addLine.setInt(2, soldto);
+            addLine.setInt(2, SOLDTO);
             addLine.setInt(3,line);
-            addLine.setString(4, MemberName);
+            addLine.setString(4, wallPanelItem);
             addLine.setInt(5, quantity);
             addLine.setDouble(6, cost);
             addLine.setDouble(7, (double)Math.round(sprice * decMultiplier) / 
                                   decMultiplier );
             addLine.setString(8, "n");
-            addLine.setString(9, dateNext);
-            addLine.setInt(10, ikey);
+            addLine.setString(9, DATENEXT);
+            addLine.setInt(10, wallPanelId);
             addLine.setString(11, idescrip);
-            addLine.setInt(12, loctid);
-            addLine.setString(13, dateNext);
+            addLine.setInt(12, LOCTID);
+            addLine.setString(13, DATENEXT);
             addLine.setInt(14, soKeynoh);
-            addLine.setString(15, dateNext);
+            addLine.setString(15, DATENEXT);
             addLine.setString(16, taxable);
             addLine.setString(17, sunit);
             addLine.setDouble(18, sellfact);
-            addLine.setString(19, heldfor);
+            addLine.setString(19, HELDFOR);
             addLine.setString(20, "MADMAX");
-            addLine.setString(21, dateNow);
+            addLine.setString(21, DATENOW);
             addLine.setString(22, " ");
             addLine.setString(23, null);
             addLine.setString(24, "M");
             addLine.setInt(25, quantity);
             addLine.setInt(26, quantity);
-            addLine.setInt(27,shipto);
-            addLine.setInt(28, msnphase);
-            addLine.setInt(29, msnid);
-            addLine.setInt(30, ownerid);
+            addLine.setInt(27,SHIPTO);
+            addLine.setInt(28, MSNPHASEID);
+            addLine.setInt(29, MSNID);
+            addLine.setInt(30, OWNERID);
             addLine.setDouble(31, (double)Math.round(extstot * decMultiplier) / 
                                    decMultiplier );
             addLine.setDouble(32, (double)Math.round(exttot * decMultiplier) / 
                                    decMultiplier );
             addLine.setDouble(33, (double)Math.round(exttax * decMultiplier) / 
                                    decMultiplier );
-            addLine.setString(34, socdesc);
+            addLine.setString(34, socDesc);
             addLine.setDouble(35, taxrate);
             addLine.setDouble(36, (double)Math.round(price * decMultiplier) / 
                                    decMultiplier );
@@ -364,8 +370,8 @@ public class LoadSheathingPWO {
             addLine.setString(38, taxtable);
             addLine.setDouble(39, (double)Math.round(price * decMultiplier) / 
                                    decMultiplier );
-            addLine.setInt(40, quantity);
-            addLine.setInt(41, loctid);
+            addLine.setDouble(40, quantity);
+            addLine.setInt(41, LOCTID);
             addLine.setDouble(42, (double)Math.round(price  * decMultiplier) / 
                                    decMultiplier );
             addLine.setDouble(43, iweight);
