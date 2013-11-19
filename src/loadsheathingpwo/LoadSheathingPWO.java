@@ -27,7 +27,7 @@ public class LoadSheathingPWO {
         Statement stmt            = connAdj.createStatement();
         String testing            = "true";
         String CID                = "";
-        String PROJECTKEY         = "189-1151";
+        String PROJECTKEY         = "189-1236"; //2nd Floor //1151 = 1st Floor";
         String HELDFOR            = "MBSL";
         String CURRID             = "CAD";
         String SHIPVIA            = "OURTRUCK";
@@ -55,6 +55,8 @@ public class LoadSheathingPWO {
         String wallPanelDesc      = "";
         String wallPanelItem      = "";
         String socDesc            = "";
+        String answerT            = "";
+        String dcode              = ""; 
         int LOCTID                = 194; //189 MBSL LIVE loctid //190 MMPL LIVE loctid //194 DEVMBSL TEST loctid //195 MMSL LIVE loctid;
         int PLANTIDH              = 194; //189 MBSL LIVE plantid //190 MMPL LIVE plantid //194 DEVMBSL TEST plantid //195 MMSL LIVE plantid;
         int OWNERID               = 50753; //50753 DEVMBSL //
@@ -72,6 +74,10 @@ public class LoadSheathingPWO {
         int decMultiplier         = 1000; //3 decimals
         int line                  = 0;
         int quantity              = 1;
+        int sotranKeyno           = 0;
+        int socKeyno              = 0;
+        int question              = 0;
+        int socQuestKeyno         = 0;
         double taxrate            = 0.00;
         double wallPanelLengthMm      =  0.00;
         double wallPanelHeightMm      =  0.00;
@@ -94,7 +100,8 @@ public class LoadSheathingPWO {
         double extstot                = 0.00;
         double exttax                 = 0.00;  
         double exttot                 = 0.00;
-        double extcost                = 0.00;    
+        double extcost                = 0.00;
+        double answer                 = 0.00;
                   
         if ("true".equals(testing)) 
             CID = "DEVMBSL";
@@ -290,19 +297,37 @@ public class LoadSheathingPWO {
                        iweight  = rsGetItemKey.getDouble(9);
                        spriceunit = rsGetItemKey.getString(10);
                        spricefact = rsGetItemKey.getDouble(11);
-                  if ("MSFT".equals(punit) || "MF".equals(punit))
-                      priceFact = 0.001;  
-                      scost    = (double)Math.round((priceFact * cost) * 100) / 100;
-                      sprice   = (double)Math.round((priceFact * price) * 100) / 100;  
-                      extstot  = ((double)Math.round((sprice * quantity) * 100 ) / 
-                                  100);
-                      exttax   = (double)Math.round(((sprice * quantity) * 
-                           (taxrate /100)) * 100 ) / 100;
-                      exttot   = (((double)Math.round((sprice * quantity) * 100 ) 
-                              / 100) + ((double)Math.round((sprice * quantity) *
-                             (taxrate / 100 ) * 100) / 100)); 
-                  }rsGetItemKey.close();
-                      
+                  
+                       if ("MSFT".equals(punit) || "MF".equals(punit))
+                           priceFact = 0.001;  
+                           scost    = (double)Math.round((priceFact * cost) * 100) / 100;
+                           sprice   = (double)Math.round((priceFact * price) * 100) / 100;  
+                           extstot  = ((double)Math.round((sprice * quantity) * 100 ) / 
+                                        100);
+                           exttax   = (double)Math.round(((sprice * quantity) * 
+                                      (taxrate /100)) * 100 ) / 100;
+                           exttot   = (((double)Math.round((sprice * quantity) * 100 ) 
+                                        / 100) + ((double)Math.round((sprice * quantity) *
+                                        (taxrate / 100 ) * 100) / 100)); 
+                       }rsGetItemKey.close();
+              
+                       socDesc = ("Wall Mark: "   + wallMark + " " + 
+                                  "PanelLength: " + Double.toString(wallPanelLengthFt) + " " +
+                                  "PanelHeight: " + Double.toString(wallPanelHeightFt) + " " +
+                                  "Gross SqFt: "  + Double.toString(wallPanelGrossAreaSqft) + " " +
+                                  "Net SqFt: "    + Double.toString(wallPanelNetAreaSqft));        
+                       
+                       String getDept = (" SELECT XR.type " +
+                                         " FROM pcxref as XR" +
+                                         " INNER JOIN rd AS RD on RD.text1 = XR.type" +
+                                         " INNER JOIN rh AS RH on RH.keyno = RD.rhkeyno" +
+                                         " WHERE XR.parentid = '" + wallPanelId + 
+                                         "' AND RH.cid = '" + CID + "' AND RD.text2='Dept'");
+                       ResultSet rsGetDept = connAdj.createStatement().executeQuery(getDept);
+                       if (rsGetDept.next()){
+                           dcode = rsGetDept.getString(1);
+                       }rsGetDept.close();
+                       
               String addsoLine = ("INSERT INTO sotran (sono, custid, linenum," + 
                                 " item, qtyord, cost, price, " + 
                                 " expdate, shipdate, ikey, descrip, loctid," + 
@@ -400,10 +425,79 @@ public class LoadSheathingPWO {
             addLine.setString(56,"y");
             addLine.setString(57,"y");
             addLine.executeUpdate();
+            
+            keyRs = stmt.executeQuery("SELECT @@IDENTITY FROM sotran"); 
+              if(keyRs.next()) {
+                sotranKeyno = keyRs.getInt(1);
+               //  System.out.println(sotranKeyno);
+              }keyRs.close();
            
+             String getSOCitemID = ("SELECT keyno FROM socitem WHERE cid = '" + 
+                                  CID + "' AND ikey = " + wallPanelId);
+            ResultSet socRs = 
+                    connAdj.createStatement().executeQuery(getSOCitemID);
+               
+          if(socRs.next()) {
+            socKeyno = socRs.getInt(1);
+              System.out.println(socKeyno);
+          }socRs.close();
+          
+         for (question = 0; question < 6; question++) {
+              String getSOCquest = ("SELECT keyno from socquestion" + 
+                                    " where keynoh = " + socKeyno + 
+                                    "AND questno = " + question);
+              ResultSet getQuest = 
+                      connAdj.createStatement().executeQuery(getSOCquest);    
+     
+              if (getQuest.next()) {
+                 socQuestKeyno = getQuest.getInt(1);
+              }
+             
+              switch (question) {
+                  case 1: // System.out.println("Piece Mark5: " + pieceMark);
+                           answerT = wallMark;
+                          // System.out.println("Piece Mark6: " + pieceMark);
+                          break;
+                  case 2: answer = wallPanelHeightFt;
+                          break;
+                  case 3: answer = wallPanelLengthFt;
+                          break;
+                  case 4: answer = wallPanelGrossAreaSqft;
+                          break;
+                  case 5: answer = wallPanelNetAreaSqft;
+                          break;
+              }           
+              
+              String addSOtranans = ("INSERT INTO sotranans " + 
+                                     " (keynod, question, answer, adduser," + 
+                                     " adddate) VALUES (?,?,?,?,?)");
+              PreparedStatement addAnswers = 
+                      connAdj.prepareStatement(addSOtranans);
+              
+              addAnswers.setInt(1, sotranKeyno);
+              addAnswers.setInt(2, socQuestKeyno);
+              if (question == 1)
+              addAnswers.setString(3, answerT);
+              else
+              addAnswers.setDouble(3, answer);   
+              addAnswers.setString(4, "MADMAX");
+              addAnswers.setString(5, DATENOW);
+              addAnswers.executeUpdate();
+          } 
+         
+         String addWoh = (" INSERT INTO woh (custid, duedate, sokey," +
+                         "                  adduser, adddate, ownerid, heldfor, " +
+                         "                  loctid, wono, cid, startdate, dcode, " + 
+                         "                  plantid, OLDPLANTID, OLDLOCTID," + 
+                         "                  OLDLOCTID, OLDOWNERID, OLDHELDFOR)" +
+                         "   VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+         PreparedStatement insertWoh = connAdj.prepareStatement(addWoh);
+         insertWoh.setInt(1,CUSTID);
+         insertWoh.setString(2, DATENEXT)
+              
            }rsGetSheathPanel.close();
        
-       String addWoh = " INSERT INTO woh ";
+       
        
                  
         
