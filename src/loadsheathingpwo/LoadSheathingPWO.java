@@ -33,6 +33,7 @@ public class LoadSheathingPWO {
         String SHIPVIA            = "OURTRUCK";
         String DATENOW            = "2013-10-28 00:00:00.000";
         String DATENEXT           = "2013-10-28 00:00:00.000";
+        String ADDUSER            = "MADMAX";
         String company            = "";
         String salesOrder         = "";
         String scompany           = "";
@@ -56,7 +57,8 @@ public class LoadSheathingPWO {
         String wallPanelItem      = "";
         String socDesc            = "";
         String answerT            = "";
-        String dcode              = ""; 
+        String dcode              = "";
+        String nextPWO            = "";
         int LOCTID                = 194; //189 MBSL LIVE loctid //190 MMPL LIVE loctid //194 DEVMBSL TEST loctid //195 MMSL LIVE loctid;
         int PLANTIDH              = 194; //189 MBSL LIVE plantid //190 MMPL LIVE plantid //194 DEVMBSL TEST plantid //195 MMSL LIVE plantid;
         int OWNERID               = 50753; //50753 DEVMBSL //
@@ -69,6 +71,7 @@ public class LoadSheathingPWO {
         int nextOrder             = 0;
         int sokey                 = 0;
         int soKeynoh              = 0;
+        int wohKeynoh             = 0; 
         int wallPanelId           = 0;
         int sheathIkey            = 0;
         int decMultiplier         = 1000; //3 decimals
@@ -232,6 +235,59 @@ public class LoadSheathingPWO {
        setOrderNo.setInt(1, nextOrder);
        setOrderNo.executeUpdate(); 
        
+       nextPWO = PROJECTKEY + "-001";
+         
+         String getNextPWO = ("(SELECT TOP 1 wono " + 
+                              " FROM woh " + 
+                              " WHERE wono LIKE('" + PROJECTKEY +"%')" + 
+                              " ORDER BY wono DESC");
+         ResultSet rsGetNextPWO = connAdj.createStatement().executeQuery(getNextPWO);
+         
+         if (rsGetNextPWO.next()){
+             String[] pwoSegments = rsGetNextPWO.getString(1).split("-");
+             int pwoLastSegment = Integer.valueOf(pwoSegments[4]);
+                 pwoLastSegment = pwoLastSegment++;
+              
+                  if(pwoLastSegment <  10)  
+                       nextPWO = PROJECTKEY + "00" + String.valueOf(pwoLastSegment);
+                  else if(pwoLastSegment >= 10 && pwoLastSegment <= 99) 
+                       nextPWO = PROJECTKEY + "0" + String.valueOf(pwoLastSegment);
+                  else nextPWO = PROJECTKEY + String.valueOf(pwoLastSegment);              
+         }rsGetNextPWO.close();
+
+         String addWoh = (" INSERT INTO woh (custid, duedate, sokey," +
+                         "                  adduser, adddate, ownerid, heldfor, " +
+                         "                  loctid, wono, cid, startdate, dcode, " + 
+                         "                  plantid, OLDPLANTID, OLDLOCTID," + 
+                         "                  OLDOWNERID, OLDHELDFOR)" +
+                         "   VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+         PreparedStatement insertWoh = connAdj.prepareStatement(addWoh);
+         insertWoh.setInt(1,CUSTID);
+         insertWoh.setString(2, DATENEXT);
+         insertWoh.setInt(3, soKeynoh);
+         insertWoh.setString(4, ADDUSER);
+         insertWoh.setString(5, DATENOW);
+         insertWoh.setInt(6, OWNERID);
+         insertWoh.setString(7,HELDFOR);
+         insertWoh.setInt(8, LOCTID);
+         insertWoh.setString(9, nextPWO);
+         insertWoh.setString(10, CID);
+         insertWoh.setString(11, DATENOW);
+         insertWoh.setString(12, dcode);
+         insertWoh.setInt(13, LOCTID);
+         insertWoh.setInt(14,LOCTID);
+         insertWoh.setInt(15, LOCTID);
+         insertWoh.setInt(16, OWNERID);
+         insertWoh.setString(17,HELDFOR);
+
+         keyRs = stmt.executeQuery("SELECT @@IDENTITY FROM woh");  
+               
+       if(keyRs.next()) {
+          wohKeynoh = keyRs.getInt(1);
+         //   System.out.println(soKeynoh);
+       }keyRs.close();
+
+         
        String getWallPanel = (" SELECT IM.ikey, IM.descrip, IM.item from itemmaster AS IM" + 
                               " INNER JOIN pcxref AS IA ON IM.ikey = IA.parentid " +
                               " WHERE IM.cid      = '" + CID + "'" +
@@ -484,23 +540,8 @@ public class LoadSheathingPWO {
               addAnswers.setString(5, DATENOW);
               addAnswers.executeUpdate();
           } 
-         
-         String addWoh = (" INSERT INTO woh (custid, duedate, sokey," +
-                         "                  adduser, adddate, ownerid, heldfor, " +
-                         "                  loctid, wono, cid, startdate, dcode, " + 
-                         "                  plantid, OLDPLANTID, OLDLOCTID," + 
-                         "                  OLDLOCTID, OLDOWNERID, OLDHELDFOR)" +
-                         "   VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
-         PreparedStatement insertWoh = connAdj.prepareStatement(addWoh);
-         insertWoh.setInt(1,CUSTID);
-         insertWoh.setString(2, DATENEXT)
-              
-           }rsGetSheathPanel.close();
-       
-       
-       
-                 
-        
+          
+          }rsGetSheathPanel.close();
     }
     
 }
