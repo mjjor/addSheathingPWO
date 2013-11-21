@@ -81,6 +81,7 @@ public class LoadSheathingPWO {
         int socKeyno              = 0;
         int question              = 0;
         int socQuestKeyno         = 0;
+        int soWomKeyno            = 0;
         double taxrate            = 0.00;
         double wallPanelLengthMm      =  0.00;
         double wallPanelHeightMm      =  0.00;
@@ -540,7 +541,29 @@ public class LoadSheathingPWO {
               addAnswers.setString(5, DATENOW);
               addAnswers.executeUpdate();
           } 
-          
+         
+         String addWom = ("INSERT INTO wom (keynoh,ikey, qty,adduser," + 
+                          "                 adddate,socdesc,keynod,linenum," + 
+                          "                 estqty) VALUES(?,?,?,?,?,?,?,?,?)");
+         PreparedStatement insertWom = connAdj.prepareStatement(addWom);
+         insertWom.setInt(1,wohKeynoh);
+         insertWom.setInt(2,wallPanelId);
+         insertWom.setInt(3, quantity);
+         insertWom.setString(4, ADDUSER);
+         insertWom.setString(5,DATENOW);
+         insertWom.setString(6,socDesc);
+         insertWom.setInt(7,sotranKeyno);
+         insertWom.setInt(8, quantity);
+         insertWom.executeUpdate();
+         
+          keyRs = stmt.executeQuery("SELECT @@IDENTITY FROM wom"); 
+              if(keyRs.next()) {
+                soWomKeyno = keyRs.getInt(1);
+               //  System.out.println(sotranKeyno);
+              }keyRs.close();
+         
+              
+              
           }rsGetSheathPanel.close();
     }
     
