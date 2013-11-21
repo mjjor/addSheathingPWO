@@ -59,6 +59,10 @@ public class LoadSheathingPWO {
         String answerT            = "";
         String dcode              = "";
         String nextPWO            = "";
+        String inout              = "";
+        String scale              = "";
+        String optional           = "";
+        String rcode              = "";
         int LOCTID                = 194; //189 MBSL LIVE loctid //190 MMPL LIVE loctid //194 DEVMBSL TEST loctid //195 MMSL LIVE loctid;
         int PLANTIDH              = 194; //189 MBSL LIVE plantid //190 MMPL LIVE plantid //194 DEVMBSL TEST plantid //195 MMSL LIVE plantid;
         int OWNERID               = 50753; //50753 DEVMBSL //
@@ -82,6 +86,8 @@ public class LoadSheathingPWO {
         int question              = 0;
         int socQuestKeyno         = 0;
         int soWomKeyno            = 0;
+        int bubblenum             = 0;
+        int bomListKey            = 0;
         double taxrate            = 0.00;
         double wallPanelLengthMm      =  0.00;
         double wallPanelHeightMm      =  0.00;
@@ -561,8 +567,60 @@ public class LoadSheathingPWO {
                 soWomKeyno = keyRs.getInt(1);
                //  System.out.println(sotranKeyno);
               }keyRs.close();
-         
               
+              
+         String getBomList = (" SELECT keyno,inout,scale,optional," +
+                               "       rcode, bubblenum" +  
+                               " FROM bomlist" + 
+                               " WHERE pikey = " + wallPanelId + " AND " + 
+                               "       ikey  = " + sheathIkey);     
+         ResultSet rsGetBomList = connAdj.createStatement().executeQuery(getBomList);
+         if (rsGetBomList.next()) {
+             bomListKey = rsGetBomList.getInt(1);
+             inout      = rsGetBomList.getString(2);
+             scale      = rsGetBomList.getString(3);
+             optional   = rsGetBomList.getString(4);
+             rcode      = rsGetBomList.getString(5);
+             bubblenum  = rsGetBomList.getInt(6); 
+         }
+         
+              String addWoBom = ("INSERT INTO wobom (woh,ikey,qty,inout," +
+                                 "                   keynom,qtyass,scale," + 
+                                 "                   optional,rcode,bubblenum," + 
+                                 "                   MDESCRIP, BOMKEYD) " + 
+                                 "                   VALUES(?,?,?,?,?,?,?,?," + 
+                                 "                          ?,?,?,?)"); 
+              PreparedStatement insertWoBom = connAdj.prepareStatement(addWoBom);
+              insertWoBom.setInt(1,wohKeynoh);
+              insertWoBom.setInt(2,sheathIkey);
+              insertWoBom.setDouble(3,wallPanelGrossAreaSqft);
+              insertWoBom.setString(4, inout);
+              insertWoBom.setInt(5, soWomKeyno);
+              insertWoBom.setDouble(6,(wallPanelGrossAreaSqft * -1.00));
+              insertWoBom.setString(7, scale);
+              insertWoBom.setString(8,optional);
+              insertWoBom.setString(9,rcode);
+              insertWoBom.setInt(10,bubblenum);
+              insertWoBom.setString(11, idescrip);
+              insertWoBom.setInt(12,bomListKey);
+              insertWoBom.executeUpdate();
+              
+              String addWod = ("INSERT INTO wod (keynoh,ikey,qty,adduser," + 
+                               "                 adddate,socdesc,keynod,keynom," +
+                               "                 estqty,sokeynod)" + 
+                               "             VALUES (?,?,?,?,?,?,?,?,?,?)");
+              PreparedStatement insertWod = connAdj.prepareStatement(addWod);
+              insertWod.setInt(1,wohKeynoh);
+              insertWod.setInt(2,wallPanelId);
+              insertWod.setInt(3,quantity);
+              insertWod.setString(4,ADDUSER);
+              insertWod.setString(5,DATENOW);
+              insertWod.setString(6,socDesc);
+              insertWod.setInt(7,sotranKeyno);
+              insertWod.setInt(8,soWomKeyno);
+              insertWod.setInt(9,quantity);
+              insertWod.setInt(10,sotranKeyno);
+              insertWod.executeUpdate();
               
           }rsGetSheathPanel.close();
     }
