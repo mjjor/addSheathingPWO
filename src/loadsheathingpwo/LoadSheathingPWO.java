@@ -27,7 +27,7 @@ public class LoadSheathingPWO {
         Statement stmt            = connAdj.createStatement();
         String testing            = "true";
         String CID                = "";
-        String PROJECTKEY         = "189-1236"; //2nd Floor //1151 = 1st Floor";
+        String PROJECTKEY         = "189-1151"; //1236 = Canadore 2nd Floor //1151 = Canadore 1st Floor";
         String HELDFOR            = "MBSL";
         String CURRID             = "CAD";
         String SHIPVIA            = "OURTRUCK";
@@ -725,7 +725,7 @@ public class LoadSheathingPWO {
               
           }rsGetSheathPanel.close();
       if ("true".equals(debug)) {
-               System.out.println("Program completed !!!");
+               System.out.println("Program completed!!!");
       }
     } 
 }
