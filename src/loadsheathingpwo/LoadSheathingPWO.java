@@ -118,6 +118,8 @@ public class LoadSheathingPWO {
             CID = "DEVMBSL";
         else CID = "MBSL";
         
+        System.out.println("CID set to :" + CID + " || " + testing);
+        
         if ("true".equals(testing)) {
             System.out.println("CID set to :" + CID);
         }
