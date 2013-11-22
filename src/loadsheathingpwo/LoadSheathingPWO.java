@@ -71,13 +71,17 @@ public class LoadSheathingPWO {
         int MSNPHASEID            = 3476;
         int CUSTID                = 50753;
         int SHIPTO                = 4108;
+        int shipto                = 0;
         int SOLDTO                = 1575;
+        int soldto                = 0;
         int BILLTO                = 1821;
+        int billto                = 0;
         int nextOrder             = 0;
         int sokey                 = 0;
         int soKeynoh              = 0;
         int wohKeynoh             = 0; 
         int wallPanelId           = 0;
+        int wallPanelItemId       = 0;
         int sheathIkey            = 0;
         int decMultiplier         = 1000; //3 decimals
         int line                  = 0;
@@ -118,8 +122,6 @@ public class LoadSheathingPWO {
             CID = "DEVMBSL";
         else CID = "MBSL";
         
-        System.out.println("CID set to :" + CID + " || " + testing);
-        
         if ("true".equals(testing)) {
             System.out.println("CID set to :" + CID);
         }
@@ -149,25 +151,33 @@ public class LoadSheathingPWO {
         counterRs.close();        
         
         if ("true".equals(testing)) {
-            System.out.println("Got the SO Order-Counter:\n" + "Going to get SOLDTO ent Company:");
+            System.out.println("Got the SO Order-Counter: " + salesOrder + "\n Going to get SOLDTO ent Company:");
         }
         
-        String getCustData = (" SELECT company FROM ent WHERE ent.cid = '" + 
-                              CID + "' AND ent.entid = '" + SOLDTO + "'");
+        String getCustData = (" SELECT ent.company, soldto.custid FROM ent" + 
+                              " INNER JOIN soldto ON ent.entid = soldto.custid" + 
+                              " WHERE ent.cid = '" + CID + "' AND " +
+                              "       soldto.keyno = " + SOLDTO);
         ResultSet custRs = connAdj.createStatement().executeQuery(getCustData);
         if (custRs.next()){ 
-                 company = custRs.getString(1).trim();                
+                 company = custRs.getString(1).trim();           
+                 soldto  = custRs.getInt(2);
         }  
         custRs.close();        
        
         if ("true".equals(testing)) {
-            System.out.println("Got SOLDTO ent Company:\n" + "Going to get SHIPTO data from ent");
+            System.out.println("Got SOLDTO ent Company: " + company + "\n Going to get SHIPTO data from ent");
         }
        
-        String getShipData = (" SELECT company, address1, address2, address3,"+ 
-                              " city, state, zipcode, country " + 
-                              " from ent WHERE ent.cid = '" + CID + 
-                              "' and ent.entid = '" + SHIPTO + "'");
+        String getShipData = (" SELECT ent.company, ent.address1," + 
+                              " ent.address2, ent.address3, ent.city," + 
+                              " ent.state, ent.zipcode, ent.country, " +
+                              " billto.custid" +
+                              " FROM ent" + 
+                              " INNER JOIN billto ON ent.entid = billto.custid" +                  
+                              " WHERE ent.cid = '" + CID + "' AND " +
+                              "       billto.keyno =" + BILLTO);
+                              
         ResultSet shipRs = connAdj.createStatement().executeQuery(getShipData);
         if (shipRs.next()){ 
                  scompany = shipRs.getString(1).trim();
@@ -178,16 +188,16 @@ public class LoadSheathingPWO {
                              shipRs.getString(7).trim();
                  saddress4 = shipRs.getString(8).trim();
                  saddress5 = shipRs.getString(4).trim();
+                 billto    = shipRs.getInt(9);
         }  
         shipRs.close();        
        
         if ("true".equals(testing)) {
-            System.out.println("Got SHIPTO data: \n" + "Going to get SHIPTO taxrate from shiptp");
+            System.out.println("Got SHIPTO data: " + scompany + "\n Going to get SHIPTO taxrate from shipto");
         }
         
         String getShiptoData = (" SELECT taxrate, shipvia, fob, taxtable, " + 
-                                " freight FROM shipto WHERE custid = '" + 
-                                  SHIPTO +"'");
+                                " freight, custid FROM shipto WHERE keyno = " + SHIPTO);
         ResultSet shipToRs = 
                 connAdj.createStatement().executeQuery(getShiptoData);
         
@@ -199,15 +209,15 @@ public class LoadSheathingPWO {
                 fob = shipToRs.getString(3).trim();
                 taxtable = shipToRs.getString(4).trim();
                 freight = shipToRs.getString(5).trim();
+                shipto  = shipToRs.getInt(6);
         }  
         shipToRs.close();        
         
         if ("true".equals(testing)) {
-            System.out.println("Got SHIPTO shipto data: \n" + "Going to get SOLDTO from billto");
+            System.out.println("Got SHIPTO shipto data: " + SHIPVIA + "\n Going to get SOLDTO from billto");
         }
         
-        String getBillData = ("SELECT terms FROM billto where custid= '" + 
-                               SOLDTO + "'");
+        String getBillData = ("SELECT terms FROM billto where keyno = " + SOLDTO);
         ResultSet billToRs = 
                 connAdj.createStatement().executeQuery(getBillData);
         
@@ -217,7 +227,7 @@ public class LoadSheathingPWO {
         billToRs.close();        
 
         if ("true".equals(testing)) {
-            System.out.println("Got SOLDTO data: \n" + "Gointg to add somast (Order Header");
+            System.out.println("Got BILLTO data: " + terms + "\n Going to add somast (Order Header");
         }
         
        String addOrdHeader = " INSERT INTO somast (sono, custid, company," + 
@@ -231,7 +241,7 @@ public class LoadSheathingPWO {
        PreparedStatement insertSoMast = connAdj.prepareStatement(addOrdHeader);
        
        insertSoMast.setString(1, salesOrder);
-       insertSoMast.setInt(2,SOLDTO);
+       insertSoMast.setInt(2,CUSTID);
        insertSoMast.setString(3, company);
        insertSoMast.setString(4, scompany);
        insertSoMast.setString(5, saddress1);
@@ -239,7 +249,7 @@ public class LoadSheathingPWO {
        insertSoMast.setString(7, saddress3);
        insertSoMast.setString(8, saddress4);
        insertSoMast.setString(9, saddress5);
-       insertSoMast.setInt(10, SHIPTO);
+       insertSoMast.setInt(10, shipto);
        insertSoMast.setDouble(11, taxrate);
        insertSoMast.setString(12, "Gary Martin");
        insertSoMast.setString(13, SHIPVIA);
@@ -247,8 +257,8 @@ public class LoadSheathingPWO {
        insertSoMast.setString(15, freight);
        insertSoMast.setString(16, DATENOW);
        insertSoMast.setString(17, terms);
-       insertSoMast.setInt(18, SOLDTO);
-       insertSoMast.setInt(19, SOLDTO);
+       insertSoMast.setInt(18, soldto);
+       insertSoMast.setInt(19, soldto);
        insertSoMast.setString(20, CID);
        insertSoMast.setString(21, HELDFOR);
        insertSoMast.setInt(22,MSNID);
@@ -260,7 +270,7 @@ public class LoadSheathingPWO {
        insertSoMast.executeUpdate();
        
        if ("true".equals(testing)) {
-            System.out.println("Added somast (Order Header: \n" + "Getting inserted somast ID");
+            System.out.println("Added somast (Order Header: " + salesOrder + "\n Getting inserted somast ID");
         }
         
        
@@ -273,8 +283,8 @@ public class LoadSheathingPWO {
        keyRs.close();
          
        if ("true".equals(testing)) {
-            System.out.println("Got inserted somast ID: \n" + 
-                               "Going to set counter up one for order number we used");
+            System.out.println("Got inserted somast ID: " + soKeynoh +
+                               "\n Going to set counter up one for order number we used");
         }
        
        String setNextOrder = ("UPDATE counter SET counter.number = ? " + 
@@ -286,12 +296,12 @@ public class LoadSheathingPWO {
        setOrderNo.executeUpdate(); 
        
        if ("true".equals(testing)) {
-            System.out.println("Set next order number: \n" + "Going to find if there are work orders for this project");
+            System.out.println("Set next order number: " + "\n Going to find if there are work orders for this project");
         }
          
          nextPWO = msnNum + "-001";
          
-         String getNextPWO = ("(SELECT TOP 1 wono " + 
+         String getNextPWO = ("SELECT TOP 1 wono " + 
                               " FROM woh " + 
                               " WHERE wono LIKE('" + msnNum +"%')" + 
                               " ORDER BY wono DESC");
@@ -310,7 +320,7 @@ public class LoadSheathingPWO {
          }rsGetNextPWO.close();
 
          if ("true".equals(testing)) {
-            System.out.println("Set WoNo: \n" + "Going to insert new woh record");
+            System.out.println("Set WoNo: " + nextPWO + "\n Going to insert new woh record");
         }
          String addWoh = (" INSERT INTO woh (custid, duedate, sokey," +
                          "                  adduser, adddate, ownerid, heldfor, " +
@@ -338,7 +348,7 @@ public class LoadSheathingPWO {
          insertWoh.setString(17,HELDFOR);
 
        if ("true".equals(testing)) {
-            System.out.println("Inserted woh: \n" + "Going to retieve woh Id");
+            System.out.println("Inserted woh: " + nextPWO + "\n Going to retieve woh Id");
         }
          
          keyRs = stmt.executeQuery("SELECT @@IDENTITY FROM woh");  
@@ -349,24 +359,24 @@ public class LoadSheathingPWO {
        }keyRs.close();
        
        if ("true".equals(testing)) {
-            System.out.println("Got the woh ID: \n" + "Goig to retrieve parent part data");
+            System.out.println("Got the woh ID: " + wohKeynoh + "\n Going to retrieve parent part data");
         }
          
        String getWallPanel = (" SELECT IM.ikey, IM.descrip, IM.item from itemmaster AS IM" + 
                               " INNER JOIN pcxref AS IA ON IM.ikey = IA.parentid " +
-                              " WHERE IM.cid      = '" + CID + "'" +
+                              " WHERE IM.cid      = '" + CID + "' AND " +
                               "       IA.type     = 'PA' AND " +
                               "       IA.cidkeyno = IM.cid");
        
        ResultSet rsGetWallPanel = connAdj.createStatement().executeQuery(getWallPanel);
            if (rsGetWallPanel.next()){
-               wallPanelId   = rsGetWallPanel.getInt(1);
+               wallPanelItemId   = rsGetWallPanel.getInt(1);
                wallPanelDesc = rsGetWallPanel.getString(2);
                wallPanelItem = rsGetWallPanel.getString(3);
            }rsGetWallPanel.close();  
        
        if ("true".equals(testing)) {
-            System.out.println("Got the parent part: \n" + "Going to retrieve the wallpanel data");
+            System.out.println("Got the parent part: " + wallPanelItemId + "\n Going to retrieve the wallpanel data");
         }    
        // get the panels we need to create order lines for
        String getSheathPanel =  " SELECT WPI.WallPanel_ID, " + 
@@ -379,8 +389,8 @@ public class LoadSheathingPWO {
                                 "        CONVERT_mAREA_2SQFT(WPI.AreaGross),   " +
                                 "        WPI.AreaNet,     " + 
                                 "        CONVERT_mAREA_2SQFT(WPI.AreaNet),     " +
-                                "        WPI.Wieght,       " +
-                                "        (SELECT INV.Inventory Code FROM TS_Sheathing_Item AS SHI " +
+                                "        WPI.Weight,       " +
+                                "        (SELECT INV.InventoryCode " +
                                 "         FROM ts_inv_master AS INV " +  
                                 "         INNER JOIN TS_Sheathing_Item AS SHI ON INV.ImperialName = SHI.Material " + 
                                 "         WHERE SHI.WallPanel_ID = WPI.WallPanel_ID LIMIT 1 ) "  +
@@ -403,7 +413,7 @@ public class LoadSheathingPWO {
                sheathItem             = rsGetSheathPanel.getString(12);
                
                if ("true".equals(testing)) {
-               System.out.println("Retrieved the wallpanel data from HSB : \n" + "Going to retrieve bom item data");
+               System.out.println("Retrieved the wallpanel data from HSB : " + wallPanelId + "\n Going to retrieve bom item data");
                }
                
                String getItemKey = ("SELECT ikey, descrip, cost, price, sellfact," +
@@ -414,7 +424,7 @@ public class LoadSheathingPWO {
                   ResultSet rsGetItemKey = connAdj.createStatement().executeQuery(getItemKey);
                   if (rsGetItemKey.next()){
                        sheathIkey = rsGetItemKey.getInt(1);
-                       sheathAvgCost = rsGetItemKey.getDouble(2);                         
+                      // sheathAvgCost = rsGetItemKey.getDouble(2);                         
                        idescrip = rsGetItemKey.getString(2).trim();
                        cost     = rsGetItemKey.getDouble(3);
                        price    = rsGetItemKey.getDouble(4);
@@ -440,7 +450,7 @@ public class LoadSheathingPWO {
                        }rsGetItemKey.close();
               
                        if ("true".equals(testing)) {
-                          System.out.println("Retrieved bom item data: \n" + "Setting socDesc");
+                          System.out.println("Retrieved bom item data: " + sheathIkey + "\n Setting socDesc");
                        }
                        socDesc = ("Wall Mark: "   + wallMark + " " + 
                                   "PanelLength: " + Double.toString(wallPanelLengthFt) + " " +
@@ -449,21 +459,21 @@ public class LoadSheathingPWO {
                                   "Net SqFt: "    + Double.toString(wallPanelNetAreaSqft));        
                        
                        if ("true".equals(testing)) {
-                          System.out.println("Set socDesc: \n" + "Going to retrive Dept code");
+                          System.out.println("Set socDesc: || " + socDesc + "\n Going to retrive Dept code");
                        }
                        String getDept = (" SELECT XR.type " +
                                          " FROM pcxref as XR" +
                                          " INNER JOIN rd AS RD on RD.text1 = XR.type" +
                                          " INNER JOIN rh AS RH on RH.keyno = RD.rhkeyno" +
-                                         " WHERE XR.parentid = '" + wallPanelId + 
+                                         " WHERE XR.parentid = '" + wallPanelItemId + 
                                          "' AND RH.cid = '" + CID + "' AND RD.text2='Dept'");
                        ResultSet rsGetDept = connAdj.createStatement().executeQuery(getDept);
                        if (rsGetDept.next()){
-                           dcode = rsGetDept.getString(1);
+                           dcode = rsGetDept.getString(1).trim();
                        }rsGetDept.close();
                        
                        if ("true".equals(testing)) {
-                          System.out.println("Retrieved Dept code: \n" + "Going to insert sotran");
+                          System.out.println("Retrieved Dept code: " + dcode + "\n Going to insert sotran");
                        }
                        
               String addsoLine = ("INSERT INTO sotran (sono, custid, linenum," + 
@@ -489,7 +499,7 @@ public class LoadSheathingPWO {
               PreparedStatement addLine = connAdj.prepareStatement(addsoLine);
             
             addLine.setString(1, salesOrder);
-            addLine.setInt(2, SOLDTO);
+            addLine.setInt(2, CUSTID);
             addLine.setInt(3,line);
             addLine.setString(4, wallPanelItem);
             addLine.setInt(5, quantity);
@@ -498,8 +508,8 @@ public class LoadSheathingPWO {
                                   decMultiplier );
             addLine.setString(8, "n");
             addLine.setString(9, DATENEXT);
-            addLine.setInt(10, wallPanelId);
-            addLine.setString(11, idescrip);
+            addLine.setInt(10, wallPanelItemId);
+            addLine.setString(11, wallPanelDesc);
             addLine.setInt(12, LOCTID);
             addLine.setString(13, DATENEXT);
             addLine.setInt(14, soKeynoh);
@@ -565,7 +575,7 @@ public class LoadSheathingPWO {
             addLine.executeUpdate();
             
             if ("true".equals(testing)) {
-               System.out.println("Inserted sotran: \n" + "Going to retreive sotran ID");
+               System.out.println("Inserted sotran: " + "\n Going to retreive sotran ID");
             }
             
             keyRs = stmt.executeQuery("SELECT @@IDENTITY FROM sotran"); 
@@ -575,22 +585,22 @@ public class LoadSheathingPWO {
               }keyRs.close();
            
               if ("true".equals(testing)) {
-               System.out.println("Retreived sotran ID: \n" + "Going to get SOC key id");
+               System.out.println("Retreived sotran ID: " + sotranKeyno + "\n Going to get SOC key id");
               }
               
              String getSOCitemID = ("SELECT keyno FROM socitem WHERE cid = '" + 
-                                  CID + "' AND ikey = " + wallPanelId);
+                                  CID + "' AND ikey = " + wallPanelItemId);
             ResultSet socRs = 
                     connAdj.createStatement().executeQuery(getSOCitemID);
-            
-          if ("true".equals(testing)) {
-               System.out.println("Retreived SOC key ID: \n" + "Going to get SOCquest records");
-              }
           
             if(socRs.next()) {
             socKeyno = socRs.getInt(1);
               System.out.println(socKeyno);
           }socRs.close();
+          
+          if ("true".equals(testing)) {
+               System.out.println("Retreived SOC key ID: " + socKeyno + "\n Going to get SOCquest records");
+              }
           
          for (question = 0; question < 6; question++) {
               String getSOCquest = ("SELECT keyno from socquestion" + 
@@ -619,7 +629,7 @@ public class LoadSheathingPWO {
               }           
               
               if ("true".equals(testing)) {
-               System.out.println("Set data for SOCquest records: \n" + "Going to insert sotranans records");
+               System.out.println("Set data for SOCquest records: " + answerT + " || " + answer+ "\n Going to insert sotranans records");
               }
               
               String addSOtranans = ("INSERT INTO sotranans " + 
@@ -640,25 +650,28 @@ public class LoadSheathingPWO {
           } 
          
          if ("true".equals(testing)) {
-               System.out.println("Inserted sotranans records: \n" + "Going to insert wom record");
+               System.out.println("Inserted sotranans records: " + sotranKeyno + "\n Going to insert wom record");
          }
          
-         String addWom = ("INSERT INTO wom (keynoh,ikey, qty,adduser," + 
+         line++;
+         
+         String addWom = ("INSERT INTO wom (keynoh,ikey,qty,adduser," + 
                           "                 adddate,socdesc,keynod,linenum," + 
                           "                 estqty) VALUES(?,?,?,?,?,?,?,?,?)");
          PreparedStatement insertWom = connAdj.prepareStatement(addWom);
          insertWom.setInt(1,wohKeynoh);
-         insertWom.setInt(2,wallPanelId);
+         insertWom.setInt(2,wallPanelItemId);
          insertWom.setInt(3, quantity);
          insertWom.setString(4, ADDUSER);
          insertWom.setString(5,DATENOW);
          insertWom.setString(6,socDesc);
          insertWom.setInt(7,sotranKeyno);
-         insertWom.setInt(8, quantity);
+         insertWom.setInt(8,line);
+         insertWom.setInt(9, quantity);
          insertWom.executeUpdate();
          
          if ("true".equals(testing)) {
-               System.out.println("Inserted wom record: \n" + "Going to retrieve wom key ID");
+               System.out.println("Inserted wom record: " + wohKeynoh + "\n Going to retrieve wom key ID");
          }
          
           keyRs = stmt.executeQuery("SELECT @@IDENTITY FROM wom"); 
@@ -668,7 +681,7 @@ public class LoadSheathingPWO {
               }keyRs.close();
          
          if ("true".equals(testing)) {
-               System.out.println("Retrieved wom key ID: \n" + "Going to get bomlist data");
+               System.out.println("Retrieved wom key ID: " + soWomKeyno + "\n Going to get bomlist data");
          }     
               
          String getBomList = (" SELECT keyno,inout,scale,optional," +
@@ -687,7 +700,7 @@ public class LoadSheathingPWO {
          }
          
          if ("true".equals(testing)) {
-               System.out.println("Retrieved bomlist data: \n " + "Going to insert wobom record");
+               System.out.println("Retrieved bomlist data: " + bomListKey + "\n Going to insert wobom record");
          }
          
               String addWoBom = ("INSERT INTO wobom (woh,ikey,qty,inout," +
@@ -712,7 +725,7 @@ public class LoadSheathingPWO {
               insertWoBom.executeUpdate();
          
               if ("true".equals(testing)) {
-               System.out.println("Inserted wobom record: \n" + "Going to insert wod record");
+               System.out.println("Inserted wobom record: " + bomListKey + "\n Going to insert wod record");
               }
               
               String addWod = ("INSERT INTO wod (keynoh,ikey,qty,adduser," + 
@@ -733,7 +746,7 @@ public class LoadSheathingPWO {
               insertWod.executeUpdate();
               
               if ("true".equals(testing)) {
-               System.out.println("Inserted wod record: \n" + "Going to top to start next panel");
+               System.out.println("Inserted wod record: " + sotranKeyno + "\n Going to top to start next panel");
               }
               
           }rsGetSheathPanel.close();
