@@ -117,6 +117,9 @@ public class LoadSheathingPWO {
             CID = "DEVMBSL";
         else CID = "MBSL";
         
+        if ("true".equals(testing)) {
+            System.out.println("CID set to :" + CID);
+        }
         
         if ("true".equals(testing)) {
             System.out.println("Get SO Order-Counter:");
