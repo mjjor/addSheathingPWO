@@ -34,6 +34,7 @@ public class LoadSheathingPWO {
         String DATENOW            = "2013-10-28 00:00:00.000";
         String DATENEXT           = "2013-10-28 00:00:00.000";
         String ADDUSER            = "MADMAX";
+        String msnNum             = "";
         String company            = "";
         String salesOrder         = "";
         String scompany           = "";
@@ -124,6 +125,13 @@ public class LoadSheathingPWO {
         if ("true".equals(testing)) {
             System.out.println("Get SO Order-Counter:");
         }
+        
+        String getMsnNum = ("SELECT msnnum from MSN where keyno = " + MSNID);
+        ResultSet rsGetMsnNum = connAdj.createStatement().executeQuery(getMsnNum);
+        if (rsGetMsnNum.next()){
+            msnNum = rsGetMsnNum.getString(1).trim();
+        }
+        
         // Get the static data setup, order number, customer data, bill to data, shipt to data,  tax rate data, and generate the order header etc...       
         String getNextOrder = (" SELECT counter.prefix, counter.number " + 
                                " FROM counter " + 
@@ -278,11 +286,12 @@ public class LoadSheathingPWO {
        if ("true".equals(testing)) {
             System.out.println("Set next order number: \n" + "Going to find if there are work orders for this project");
         }
-       nextPWO = PROJECTKEY + "-001";
+         
+         nextPWO = msnNum + "-001";
          
          String getNextPWO = ("(SELECT TOP 1 wono " + 
                               " FROM woh " + 
-                              " WHERE wono LIKE('" + PROJECTKEY +"%')" + 
+                              " WHERE wono LIKE('" + msnNum +"%')" + 
                               " ORDER BY wono DESC");
          ResultSet rsGetNextPWO = connAdj.createStatement().executeQuery(getNextPWO);
          
@@ -292,10 +301,10 @@ public class LoadSheathingPWO {
                  pwoLastSegment = pwoLastSegment++;
               
                   if(pwoLastSegment <  10)  
-                       nextPWO = PROJECTKEY + "00" + String.valueOf(pwoLastSegment);
+                       nextPWO = msnNum + "00" + String.valueOf(pwoLastSegment);
                   else if(pwoLastSegment >= 10 && pwoLastSegment <= 99) 
-                       nextPWO = PROJECTKEY + "0" + String.valueOf(pwoLastSegment);
-                  else nextPWO = PROJECTKEY + String.valueOf(pwoLastSegment);              
+                       nextPWO = msnNum + "0" + String.valueOf(pwoLastSegment);
+                  else nextPWO = msnNum + String.valueOf(pwoLastSegment);              
          }rsGetNextPWO.close();
 
          if ("true".equals(testing)) {
