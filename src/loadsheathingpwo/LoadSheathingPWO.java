@@ -63,7 +63,6 @@ public class LoadSheathingPWO {
         String scale              = "";
         String optional           = "";
         String rcode              = "";
-        String debug              = "true";
         int LOCTID                = 194; //189 MBSL LIVE loctid //190 MMPL LIVE loctid //194 DEVMBSL TEST loctid //195 MMSL LIVE loctid;
         int PLANTIDH              = 194; //189 MBSL LIVE plantid //190 MMPL LIVE plantid //194 DEVMBSL TEST plantid //195 MMSL LIVE plantid;
         int OWNERID               = 50753; //50753 DEVMBSL //
@@ -119,7 +118,7 @@ public class LoadSheathingPWO {
         else CID = "MBSL";
         
         
-        if ("true".equals(debug)) {
+        if ("true".equals(testing)) {
             System.out.println("Get SO Order-Counter:");
         }
         // Get the static data setup, order number, customer data, bill to data, shipt to data,  tax rate data, and generate the order header etc...       
@@ -136,7 +135,7 @@ public class LoadSheathingPWO {
         }  
         counterRs.close();        
         
-        if ("true".equals(debug)) {
+        if ("true".equals(testing)) {
             System.out.println("Got the SO Order-Counter:\n" + "Going to get SOLDTO ent Company:");
         }
         
@@ -148,7 +147,7 @@ public class LoadSheathingPWO {
         }  
         custRs.close();        
        
-        if ("true".equals(debug)) {
+        if ("true".equals(testing)) {
             System.out.println("Got SOLDTO ent Company:\n" + "Going to get SHIPTO data from ent");
         }
        
@@ -169,7 +168,7 @@ public class LoadSheathingPWO {
         }  
         shipRs.close();        
        
-        if ("true".equals(debug)) {
+        if ("true".equals(testing)) {
             System.out.println("Got SHIPTO data: \n" + "Going to get SHIPTO taxrate from shiptp");
         }
         
@@ -190,7 +189,7 @@ public class LoadSheathingPWO {
         }  
         shipToRs.close();        
         
-        if ("true".equals(debug)) {
+        if ("true".equals(testing)) {
             System.out.println("Got SHIPTO shipto data: \n" + "Going to get SOLDTO from billto");
         }
         
@@ -204,7 +203,7 @@ public class LoadSheathingPWO {
         }  
         billToRs.close();        
 
-        if ("true".equals(debug)) {
+        if ("true".equals(testing)) {
             System.out.println("Got SOLDTO data: \n" + "Gointg to add somast (Order Header");
         }
         
@@ -247,7 +246,7 @@ public class LoadSheathingPWO {
        insertSoMast.setString(27, "B");
        insertSoMast.executeUpdate();
        
-       if ("true".equals(debug)) {
+       if ("true".equals(testing)) {
             System.out.println("Added somast (Order Header: \n" + "Getting inserted somast ID");
         }
         
@@ -260,7 +259,7 @@ public class LoadSheathingPWO {
        }
        keyRs.close();
          
-       if ("true".equals(debug)) {
+       if ("true".equals(testing)) {
             System.out.println("Got inserted somast ID: \n" + 
                                "Going to set counter up one for order number we used");
         }
@@ -273,7 +272,7 @@ public class LoadSheathingPWO {
        setOrderNo.setInt(1, nextOrder);
        setOrderNo.executeUpdate(); 
        
-       if ("true".equals(debug)) {
+       if ("true".equals(testing)) {
             System.out.println("Set next order number: \n" + "Going to find if there are work orders for this project");
         }
        nextPWO = PROJECTKEY + "-001";
@@ -296,7 +295,7 @@ public class LoadSheathingPWO {
                   else nextPWO = PROJECTKEY + String.valueOf(pwoLastSegment);              
          }rsGetNextPWO.close();
 
-         if ("true".equals(debug)) {
+         if ("true".equals(testing)) {
             System.out.println("Set WoNo: \n" + "Going to insert new woh record");
         }
          String addWoh = (" INSERT INTO woh (custid, duedate, sokey," +
@@ -324,7 +323,7 @@ public class LoadSheathingPWO {
          insertWoh.setInt(16, OWNERID);
          insertWoh.setString(17,HELDFOR);
 
-       if ("true".equals(debug)) {
+       if ("true".equals(testing)) {
             System.out.println("Inserted woh: \n" + "Going to retieve woh Id");
         }
          
@@ -335,7 +334,7 @@ public class LoadSheathingPWO {
          //   System.out.println(soKeynoh);
        }keyRs.close();
        
-       if ("true".equals(debug)) {
+       if ("true".equals(testing)) {
             System.out.println("Got the woh ID: \n" + "Goig to retrieve parent part data");
         }
          
@@ -352,7 +351,7 @@ public class LoadSheathingPWO {
                wallPanelItem = rsGetWallPanel.getString(3);
            }rsGetWallPanel.close();  
        
-       if ("true".equals(debug)) {
+       if ("true".equals(testing)) {
             System.out.println("Got the parent part: \n" + "Going to retrieve the wallpanel data");
         }    
        // get the panels we need to create order lines for
@@ -389,7 +388,7 @@ public class LoadSheathingPWO {
                wallPanelWeight        = rsGetSheathPanel.getDouble(11);
                sheathItem             = rsGetSheathPanel.getString(12);
                
-               if ("true".equals(debug)) {
+               if ("true".equals(testing)) {
                System.out.println("Retrieved the wallpanel data from HSB : \n" + "Going to retrieve bom item data");
                }
                
@@ -426,7 +425,7 @@ public class LoadSheathingPWO {
                                         (taxrate / 100 ) * 100) / 100)); 
                        }rsGetItemKey.close();
               
-                       if ("true".equals(debug)) {
+                       if ("true".equals(testing)) {
                           System.out.println("Retrieved bom item data: \n" + "Setting socDesc");
                        }
                        socDesc = ("Wall Mark: "   + wallMark + " " + 
@@ -435,7 +434,7 @@ public class LoadSheathingPWO {
                                   "Gross SqFt: "  + Double.toString(wallPanelGrossAreaSqft) + " " +
                                   "Net SqFt: "    + Double.toString(wallPanelNetAreaSqft));        
                        
-                       if ("true".equals(debug)) {
+                       if ("true".equals(testing)) {
                           System.out.println("Set socDesc: \n" + "Going to retrive Dept code");
                        }
                        String getDept = (" SELECT XR.type " +
@@ -449,7 +448,7 @@ public class LoadSheathingPWO {
                            dcode = rsGetDept.getString(1);
                        }rsGetDept.close();
                        
-                       if ("true".equals(debug)) {
+                       if ("true".equals(testing)) {
                           System.out.println("Retrieved Dept code: \n" + "Going to insert sotran");
                        }
                        
@@ -551,7 +550,7 @@ public class LoadSheathingPWO {
             addLine.setString(57,"y");
             addLine.executeUpdate();
             
-            if ("true".equals(debug)) {
+            if ("true".equals(testing)) {
                System.out.println("Inserted sotran: \n" + "Going to retreive sotran ID");
             }
             
@@ -561,7 +560,7 @@ public class LoadSheathingPWO {
                //  System.out.println(sotranKeyno);
               }keyRs.close();
            
-              if ("true".equals(debug)) {
+              if ("true".equals(testing)) {
                System.out.println("Retreived sotran ID: \n" + "Going to get SOC key id");
               }
               
@@ -570,7 +569,7 @@ public class LoadSheathingPWO {
             ResultSet socRs = 
                     connAdj.createStatement().executeQuery(getSOCitemID);
             
-          if ("true".equals(debug)) {
+          if ("true".equals(testing)) {
                System.out.println("Retreived SOC key ID: \n" + "Going to get SOCquest records");
               }
           
@@ -605,7 +604,7 @@ public class LoadSheathingPWO {
                           break;
               }           
               
-              if ("true".equals(debug)) {
+              if ("true".equals(testing)) {
                System.out.println("Set data for SOCquest records: \n" + "Going to insert sotranans records");
               }
               
@@ -626,7 +625,7 @@ public class LoadSheathingPWO {
               addAnswers.executeUpdate();
           } 
          
-         if ("true".equals(debug)) {
+         if ("true".equals(testing)) {
                System.out.println("Inserted sotranans records: \n" + "Going to insert wom record");
          }
          
@@ -644,7 +643,7 @@ public class LoadSheathingPWO {
          insertWom.setInt(8, quantity);
          insertWom.executeUpdate();
          
-         if ("true".equals(debug)) {
+         if ("true".equals(testing)) {
                System.out.println("Inserted wom record: \n" + "Going to retrieve wom key ID");
          }
          
@@ -654,7 +653,7 @@ public class LoadSheathingPWO {
                //  System.out.println(sotranKeyno);
               }keyRs.close();
          
-         if ("true".equals(debug)) {
+         if ("true".equals(testing)) {
                System.out.println("Retrieved wom key ID: \n" + "Going to get bomlist data");
          }     
               
@@ -673,7 +672,7 @@ public class LoadSheathingPWO {
              bubblenum  = rsGetBomList.getInt(6); 
          }
          
-         if ("true".equals(debug)) {
+         if ("true".equals(testing)) {
                System.out.println("Retrieved bomlist data: \n " + "Going to insert wobom record");
          }
          
@@ -698,7 +697,7 @@ public class LoadSheathingPWO {
               insertWoBom.setInt(12,bomListKey);
               insertWoBom.executeUpdate();
          
-              if ("true".equals(debug)) {
+              if ("true".equals(testing)) {
                System.out.println("Inserted wobom record: \n" + "Going to insert wod record");
               }
               
@@ -719,12 +718,12 @@ public class LoadSheathingPWO {
               insertWod.setInt(10,sotranKeyno);
               insertWod.executeUpdate();
               
-              if ("true".equals(debug)) {
+              if ("true".equals(testing)) {
                System.out.println("Inserted wod record: \n" + "Going to top to start next panel");
               }
               
           }rsGetSheathPanel.close();
-      if ("true".equals(debug)) {
+      if ("true".equals(testing)) {
                System.out.println("Program completed!!!");
       }
     } 
