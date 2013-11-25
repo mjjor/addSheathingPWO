@@ -31,8 +31,8 @@ public class LoadSheathingPWO {
         String HELDFOR            = "MBSL";
         String CURRID             = "CAD";
         String SHIPVIA            = "OURTRUCK";
-        String DATENOW            = "2013-10-28 00:00:00.000";
-        String DATENEXT           = "2013-10-28 00:00:00.000";
+        String DATENOW            = "2013-11-25 00:00:00.000";
+        String DATENEXT           = "2013-11-25 00:00:00.000";
         String ADDUSER            = "MADMAX";
         String msnNum             = "";
         String company            = "";
@@ -95,6 +95,7 @@ public class LoadSheathingPWO {
         int soWomKeyno            = 0;
         int bubblenum             = 0;
         int bomListKey            = 0;
+        int pwoLastSegment        = 0; 
         double taxrate            = 0.00;
         double wallPanelLengthMm      =  0.00;
         double wallPanelHeightMm      =  0.00;
@@ -311,14 +312,29 @@ public class LoadSheathingPWO {
          
          if (rsGetNextPWO.next()){
              String[] pwoSegments = rsGetNextPWO.getString(1).split("-");
-             int pwoLastSegment = Integer.valueOf(pwoSegments[4]);
-                 pwoLastSegment = pwoLastSegment++;
+             String nextNum        = (pwoSegments[3]);
+             
+             System.out.println(pwoSegments[0] + " || " + pwoSegments[1] + " || " + pwoSegments[2] + " || " +  pwoSegments[3]);
+             
+             nextNum        = nextNum.substring(2,3);
+                    
+             System.out.println(nextNum);
+             
+             Integer intNextNum        = Integer.parseInt(nextNum);
+             
+             intNextNum++;
+             
+             System.out.println(intNextNum);
+             
+             // pwoLastSegment       = Integer.parseInt(pwoSegments[3]);
+            
+             pwoLastSegment       = intNextNum;
               
                   if(pwoLastSegment <  10)  
-                       nextPWO = msnNum + "00" + String.valueOf(pwoLastSegment);
+                       nextPWO = msnNum + "-00" + String.valueOf(pwoLastSegment);
                   else if(pwoLastSegment >= 10 && pwoLastSegment <= 99) 
-                       nextPWO = msnNum + "0" + String.valueOf(pwoLastSegment);
-                  else nextPWO = msnNum + String.valueOf(pwoLastSegment);              
+                       nextPWO = msnNum + "-0" + String.valueOf(pwoLastSegment);
+                  else nextPWO = msnNum + "-" + String.valueOf(pwoLastSegment);              
          }rsGetNextPWO.close();
 
          if ("true".equals(testing)) {
@@ -348,6 +364,7 @@ public class LoadSheathingPWO {
          insertWoh.setInt(15, LOCTID);
          insertWoh.setInt(16, OWNERID);
          insertWoh.setString(17,HELDFOR);
+         insertWoh.executeUpdate();
 
        if ("true".equals(testing)) {
             System.out.println("Inserted woh: " + nextPWO + "\n Going to retieve woh Id");
@@ -437,17 +454,19 @@ public class LoadSheathingPWO {
                        iweight  = rsGetItemKey.getDouble(9);
                        spriceunit = rsGetItemKey.getString(10);
                        spricefact = rsGetItemKey.getDouble(11);
+                       
+                       price = (double)Math.round((price * 1.20) * 100) / 100;
                   
-                       if ("MSFT".equals(punit) || "MF".equals(punit))
+                       if ("MSQFT".equals(punit) || "MF".equals(punit))
                            priceFact = 0.001;  
                            scost    = (double)Math.round((priceFact * cost) * 100) / 100;
                            sprice   = (double)Math.round((priceFact * price) * 100) / 100;  
-                           extstot  = ((double)Math.round((sprice * quantity) * 100 ) / 
+                           extstot  = ((double)Math.round((sprice * wallPanelGrossAreaSqft) * 100 ) / 
                                         100);
-                           exttax   = (double)Math.round(((sprice * quantity) * 
+                           exttax   = (double)Math.round(((sprice * wallPanelGrossAreaSqft) * 
                                       (taxrate /100)) * 100 ) / 100;
-                           exttot   = (((double)Math.round((sprice * quantity) * 100 ) 
-                                        / 100) + ((double)Math.round((sprice * quantity) *
+                           exttot   = (((double)Math.round((sprice * wallPanelGrossAreaSqft) * 100 ) 
+                                        / 100) + ((double)Math.round((sprice * wallPanelGrossAreaSqft) *
                                         (taxrate / 100 ) * 100) / 100)); 
                        }rsGetItemKey.close();
               
@@ -606,7 +625,7 @@ public class LoadSheathingPWO {
                System.out.println("Retreived SOC key ID: " + socKeyno + "\n Going to get SOCquest records");
               }
           
-         for (question = 0; question < 6; question++) {
+         for (question = 0; question < 5; question++) {
               String getSOCquest = ("SELECT keyno from socquestion" + 
                                     " where keynoh = " + socKeyno + 
                                     "AND questno = " + question);
@@ -726,7 +745,7 @@ public class LoadSheathingPWO {
               insertWoBom.setInt(12,bomListKey);
               insertWoBom.executeUpdate();
               
-                keyRs = stmt.executeQuery("SELECT @@IDENTITY FROM wobom"); 
+              keyRs = stmt.executeQuery("SELECT @@IDENTITY FROM wobom"); 
               if(keyRs.next()) {
                 soWoBomKeyno = keyRs.getInt(1);
                //  System.out.println(sotranKeyno);
@@ -753,7 +772,7 @@ public class LoadSheathingPWO {
               insertWod.setInt(10,sotranKeyno);
               insertWod.executeUpdate();
               
-               keyRs = stmt.executeQuery("SELECT @@IDENTITY FROM wod"); 
+              keyRs = stmt.executeQuery("SELECT @@IDENTITY FROM wod"); 
               if(keyRs.next()) {
                 soWodKeyno = keyRs.getInt(1);
                //  System.out.println(sotranKeyno);
@@ -762,6 +781,11 @@ public class LoadSheathingPWO {
               if ("true".equals(testing)) {
                System.out.println("Inserted wod record: " + soWodKeyno + "\n Going to top to start next panel");
               }
+              
+              String setWodKey = ("UPDATE sotran SET pwokey=? WHERE keynod =" + sotranKeyno);
+              PreparedStatement updateSotran = connAdj.prepareStatement(setWodKey);
+              updateSotran.setInt(1,wohKeynoh);
+              updateSotran.executeUpdate();
               
           }rsGetSheathPanel.close();
       if ("true".equals(testing)) {
