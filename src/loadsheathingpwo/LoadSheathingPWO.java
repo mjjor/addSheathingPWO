@@ -79,7 +79,9 @@ public class LoadSheathingPWO {
         int nextOrder             = 0;
         int sokey                 = 0;
         int soKeynoh              = 0;
-        int wohKeynoh             = 0; 
+        int wohKeynoh             = 0;
+        int soWodKeyno            = 0;
+        int soWoBomKeyno          = 0; 
         int wallPanelId           = 0;
         int wallPanelItemId       = 0;
         int sheathIkey            = 0;
@@ -475,7 +477,9 @@ public class LoadSheathingPWO {
                        if ("true".equals(testing)) {
                           System.out.println("Retrieved Dept code: " + dcode + "\n Going to insert sotran");
                        }
-                       
+              
+                       line++;         
+              
               String addsoLine = ("INSERT INTO sotran (sono, custid, linenum," + 
                                 " item, qtyord, cost, price, " + 
                                 " expdate, shipdate, ikey, descrip, loctid," + 
@@ -653,8 +657,6 @@ public class LoadSheathingPWO {
                System.out.println("Inserted sotranans records: " + sotranKeyno + "\n Going to insert wom record");
          }
          
-         line++;
-         
          String addWom = ("INSERT INTO wom (keynoh,ikey,qty,adduser," + 
                           "                 adddate,socdesc,keynod,linenum," + 
                           "                 estqty) VALUES(?,?,?,?,?,?,?,?,?)");
@@ -687,7 +689,7 @@ public class LoadSheathingPWO {
          String getBomList = (" SELECT keyno,inout,scale,optional," +
                                "       rcode, bubblenum" +  
                                " FROM bomlist" + 
-                               " WHERE pikey = " + wallPanelId + " AND " + 
+                               " WHERE pikey = " + wallPanelItemId + " AND " + 
                                "       ikey  = " + sheathIkey);     
          ResultSet rsGetBomList = connAdj.createStatement().executeQuery(getBomList);
          if (rsGetBomList.next()) {
@@ -723,9 +725,15 @@ public class LoadSheathingPWO {
               insertWoBom.setString(11, idescrip);
               insertWoBom.setInt(12,bomListKey);
               insertWoBom.executeUpdate();
+              
+                keyRs = stmt.executeQuery("SELECT @@IDENTITY FROM wobom"); 
+              if(keyRs.next()) {
+                soWoBomKeyno = keyRs.getInt(1);
+               //  System.out.println(sotranKeyno);
+              }keyRs.close();
          
               if ("true".equals(testing)) {
-               System.out.println("Inserted wobom record: " + bomListKey + "\n Going to insert wod record");
+               System.out.println("Inserted wobom record: " + soWoBomKeyno + "\n Going to insert wod record");
               }
               
               String addWod = ("INSERT INTO wod (keynoh,ikey,qty,adduser," + 
@@ -734,7 +742,7 @@ public class LoadSheathingPWO {
                                "             VALUES (?,?,?,?,?,?,?,?,?,?)");
               PreparedStatement insertWod = connAdj.prepareStatement(addWod);
               insertWod.setInt(1,wohKeynoh);
-              insertWod.setInt(2,wallPanelId);
+              insertWod.setInt(2,wallPanelItemId);
               insertWod.setInt(3,quantity);
               insertWod.setString(4,ADDUSER);
               insertWod.setString(5,DATENOW);
@@ -745,8 +753,14 @@ public class LoadSheathingPWO {
               insertWod.setInt(10,sotranKeyno);
               insertWod.executeUpdate();
               
+               keyRs = stmt.executeQuery("SELECT @@IDENTITY FROM wod"); 
+              if(keyRs.next()) {
+                soWodKeyno = keyRs.getInt(1);
+               //  System.out.println(sotranKeyno);
+              }keyRs.close();
+              
               if ("true".equals(testing)) {
-               System.out.println("Inserted wod record: " + sotranKeyno + "\n Going to top to start next panel");
+               System.out.println("Inserted wod record: " + soWodKeyno + "\n Going to top to start next panel");
               }
               
           }rsGetSheathPanel.close();
